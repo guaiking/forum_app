@@ -46,7 +46,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private static final String TAG = "ChatActivity";
     private static final String DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-    private static final String API_KEY = "sk-00f270159148457f8a9a852550af7c4e"; // 替换为你的API密钥
+    private static final String API_KEY = ""; // 替换为你的API密钥
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     private static final String SERVER_URL = "http://192.168.43.143:3000/api";
 
