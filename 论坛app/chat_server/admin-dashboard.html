@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户数据管理系统</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --danger: #f44336;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        h1 {
+            color: var(--primary);
+        }
+
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover {
+            background-color: var(--secondary);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+
+        .tab.active {
+            background-color: white;
+            border-color: #ddd;
+            border-bottom-color: white;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: white;
+            border-radius: 0 4px 4px 4px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .expand-btn:hover {
+            text-decoration: underline;
+        }
+
+        .expanded-content {
+            padding: 15px;
+            background-color: #f9f9f9;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+
+        .post-content, .conversation-content {
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+        }
+
+        .post-meta, .conversation-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination button:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error-message {
+            color: var(--danger);
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-bar {
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <header>
+        <h1>用户数据管理系统</h1>
+        <div id="last-updated">最后更新: <span id="update-time">正在加载...</span></div>
+    </header>
+
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="搜索用户ID、用户名或昵称...">
+        <button id="search-btn">搜索</button>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="users">用户列表</div>
+        <div class="tab" data-tab="posts">全部帖子</div>
+        <div class="tab" data-tab="conversations">AI对话</div>
+    </div>
+
+    <div class="tab-content active" id="users-tab">
+        <div id="users-loading" class="loading">正在加载用户数据...</div>
+        <div id="users-error" class="error-message" style="display: none;"></div>
+        <table id="users-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>头像</th>
+                <th>用户名</th>
+                <th>昵称</th>
+                <th>注册时间</th>
+                <th>帖子数</th>
+                <th>对话数</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody id="users-body">
+            <!-- 用户数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+        <div class="pagination" id="users-pagination">
+            <!-- 分页控件将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <div class="tab-content" id="posts-tab">
+        <div id="posts-loading" class="loading">正在加载帖子数据...</div>
+        <div id="posts-error" class="error-message" style="display: none;"></div>
+        <table id="posts-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>标题</th>
+                <th>作者</th>
+                <th>发布时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody id="posts-body">
+            <!-- 帖子数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+        <div class="pagination" id="posts-pagination">
+            <!-- 分页控件将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <div class="tab-content" id="conversations-tab">
+        <div id="conversations-loading" class="loading">正在加载对话数据...</div>
+        <div id="conversations-error" class="error-message" style="display: none;"></div>
+        <table id="conversations-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户</th>
+                <th>标题</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+            </thead>
+            <tbody id="conversations-body">
+            <!-- 对话数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+        <div class="pagination" id="conversations-pagination">
+            <!-- 分页控件将通过JavaScript动态加载 -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全局变量
+    let currentTab = 'users';
+    let currentUsersPage = 1;
+    let currentPostsPage = 1;
+    let currentConversationsPage = 1;
+    const itemsPerPage = 10;
+
+    // DOM元素
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const updateTime = document.getElementById('update-time');
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        // 加载初始数据
+        loadUsers();
+
+        // 设置标签页切换事件
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 更新活动标签
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // 更新活动内容
+                const tabId = tab.getAttribute('data-tab');
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+
+                // 更新当前标签
+                currentTab = tabId;
+
+                // 加载对应数据
+                if (currentTab === 'users' && document.getElementById('users-body').children.length === 0) {
+                    loadUsers();
+                } else if (currentTab === 'posts' && document.getElementById('posts-body').children.length === 0) {
+                    loadPosts();
+                } else if (currentTab === 'conversations' && document.getElementById('conversations-body').children.length === 0) {
+                    loadConversations();
+                }
+            });
+        });
+
+        // 设置搜索事件
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // 设置自动刷新
+        setInterval(updateData, 30000);
+    });
+
+    // 加载用户数据
+    async function loadUsers(page = 1, searchTerm = '') {
+        currentUsersPage = page;
+        const loading = document.getElementById('users-loading');
+        const error = document.getElementById('users-error');
+        const tbody = document.getElementById('users-body');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        tbody.innerHTML = '';
+
+        try {
+            let url = `http://192.168.43.143:3000/api/admin/users?page=${page}&limit=${itemsPerPage}`;
+            if (searchTerm) {
+                url += `&search=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (response.ok) {
+                if (data.users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">没有找到用户</td></tr>';
+                } else {
+                    tbody.innerHTML = data.users.map(user => `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td><img src="${user.avatar || 'default-avatar.png'}" class="user-avatar" alt="头像"></td>
+                                <td>${user.username}</td>
+                                <td>${user.nickname || '-'}</td>
+                                <td>${new Date(user.created_at).toLocaleString()}</td>
+                                <td>${user.post_count || 0}</td>
+                                <td>${user.conversation_count || 0}</td>
+                                <td>
+                                    <button class="expand-btn" data-user-id="${user.id}" onclick="showUserDetails(${user.id})">查看详情</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                }
+
+                // 更新分页
+                updatePagination('users', data.total, page);
+            } else {
+                throw new Error(data.message || '获取用户数据失败');
+            }
+        } catch (err) {
+            error.textContent = `错误: ${err.message}`;
+            error.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            updateTime.textContent = new Date().toLocaleString();
+        }
+    }
+
+    // 加载帖子数据
+    async function loadPosts(page = 1, searchTerm = '') {
+        currentPostsPage = page;
+        const loading = document.getElementById('posts-loading');
+        const error = document.getElementById('posts-error');
+        const tbody = document.getElementById('posts-body');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        tbody.innerHTML = '';
+
+        try {
+            let url = `http://192.168.43.143:3000/api/admin/posts?page=${page}&limit=${itemsPerPage}`;
+            if (searchTerm) {
+                url += `&search=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (response.ok) {
+                if (data.posts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">没有找到帖子</td></tr>';
+                } else {
+                    tbody.innerHTML = data.posts.map(post => `
+                            <tr>
+                                <td>${post.id}</td>
+                                <td>${post.title}</td>
+                                <td>${post.username}${post.nickname ? ` (${post.nickname})` : ''}</td>
+                                <td>${new Date(post.created_at).toLocaleString()}</td>
+                                <td>
+                                    <button class="expand-btn" data-post-id="${post.id}" onclick="showPostDetails(${post.id})">查看内容</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                }
+
+                // 更新分页
+                updatePagination('posts', data.total, page);
+            } else {
+                throw new Error(data.message || '获取帖子数据失败');
+            }
+        } catch (err) {
+            error.textContent = `错误: ${err.message}`;
+            error.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            updateTime.textContent = new Date().toLocaleString();
+        }
+    }
+
+    // 加载对话数据
+    async function loadConversations(page = 1, searchTerm = '') {
+        currentConversationsPage = page;
+        const loading = document.getElementById('conversations-loading');
+        const error = document.getElementById('conversations-error');
+        const tbody = document.getElementById('conversations-body');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        tbody.innerHTML = '';
+
+        try {
+            let url = `http://192.168.43.143:3000/api/admin/conversations?page=${page}&limit=${itemsPerPage}`;
+            if (searchTerm) {
+                url += `&search=${encodeURIComponent(searchTerm)}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (response.ok) {
+                if (data.conversations.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">没有找到对话</td></tr>';
+                } else {
+                    tbody.innerHTML = data.conversations.map(conv => `
+                            <tr>
+                                <td>${conv.id}</td>
+                                <td>${conv.username}${conv.nickname ? ` (${conv.nickname})` : ''}</td>
+                                <td>${conv.title}</td>
+                                <td>${new Date(conv.created_at).toLocaleString()}</td>
+                                <td>
+                                    <button class="expand-btn" data-conversation-id="${conv.id}" onclick="showConversationDetails(${conv.id})">查看内容</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                }
+
+                // 更新分页
+                updatePagination('conversations', data.total, page);
+            } else {
+                throw new Error(data.message || '获取对话数据失败');
+            }
+        } catch (err) {
+            error.textContent = `错误: ${err.message}`;
+            error.style.display = 'block';
+        } finally {
+            loading.style.display = 'none';
+            updateTime.textContent = new Date().toLocaleString();
+        }
+    }
+
+    // 更新分页控件
+    function updatePagination(type, totalItems, currentPage) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        const paginationDiv = document.getElementById(`${type}-pagination`);
+
+        if (totalPages <= 1) {
+            paginationDiv.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // 上一页按钮
+        if (currentPage > 1) {
+            html += `<button onclick="load${type.charAt(0).toUpperCase() + type.slice(1)}(${currentPage - 1}, '${searchInput.value}')">&laquo; 上一页</button>`;
+        }
+
+        // 页码按钮
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                html += `<button class="active">${i}</button>`;
+            } else {
+                html += `<button onclick="load${type.charAt(0).toUpperCase() + type.slice(1)}(${i}, '${searchInput.value}')">${i}</button>`;
+            }
+        }
+
+        // 下一页按钮
+        if (currentPage < totalPages) {
+            html += `<button onclick="load${type.charAt(0).toUpperCase() + type.slice(1)}(${currentPage + 1}, '${searchInput.value}')">下一页 &raquo;</button>`;
+        }
+
+        paginationDiv.innerHTML = html;
+    }
+
+    // 显示用户详情
+    async function showUserDetails(userId) {
+        try {
+            const response = await fetch(`http://192.168.43.143:3000/api/admin/users/${userId}`);
+            const user = await response.json();
+
+            if (response.ok) {
+                // 找到对应的行
+                const row = document.querySelector(`button[data-user-id="${userId}"]`).closest('tr');
+
+                // 检查是否已经展开
+                const existingDetails = row.nextElementSibling;
+                if (existingDetails && existingDetails.classList.contains('user-details-row')) {
+                    existingDetails.remove();
+                    return;
+                }
+
+                // 创建详情行
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'user-details-row';
+                detailsRow.innerHTML = `
+                        <td colspan="8">
+                            <div class="expanded-content">
+                                <h3>用户详细信息</h3>
+                                <p><strong>用户名:</strong> ${user.username}</p>
+                                <p><strong>昵称:</strong> ${user.nickname || '-'}</p>
+                                <p><strong>注册时间:</strong> ${new Date(user.created_at).toLocaleString()}</p>
+                                <p><strong>头像:</strong> <img src="${user.avatar || 'default-avatar.png'}" class="user-avatar" alt="头像"></p>
+
+                                <h4 style="margin-top: 15px;">用户帖子 (${user.posts.length})</h4>
+                                ${user.posts.length > 0 ?
+                    user.posts.map(post => `
+                                        <div class="post-content">
+                                            <p><strong>${post.title}</strong> (${new Date(post.created_at).toLocaleString()})</p>
+                                            <p>${post.content}</p>
+                                        </div>
+                                    `).join('') :
+                    '<p>该用户还没有发布过帖子</p>'}
+
+                                <h4 style="margin-top: 15px;">AI对话 (${user.conversations.length})</h4>
+                                ${user.conversations.length > 0 ?
+                    user.conversations.map(conv => `
+                                        <div class="conversation-content">
+                                            <p><strong>${conv.title}</strong> (${new Date(conv.created_at).toLocaleString()})</p>
+                                            <p>${conv.content}</p>
+                                        </div>
+                                    `).join('') :
+                    '<p>该用户还没有进行过AI对话</p>'}
+                            </div>
+                        </td>
+                    `;
+
+                // 插入详情行
+                row.after(detailsRow);
+            } else {
+                throw new Error(user.message || '获取用户详情失败');
+            }
+        } catch (err) {
+            alert(`获取用户详情失败: ${err.message}`);
+        }
+    }
+
+    // 显示帖子详情
+    async function showPostDetails(postId) {
+        try {
+            const response = await fetch(`http://192.168.43.143:3000/api/admin/posts/${postId}`);
+            const post = await response.json();
+
+            if (response.ok) {
+                // 找到对应的行
+                const row = document.querySelector(`button[data-post-id="${postId}"]`).closest('tr');
+
+                // 检查是否已经展开
+                const existingDetails = row.nextElementSibling;
+                if (existingDetails && existingDetails.classList.contains('post-details-row')) {
+                    existingDetails.remove();
+                    return;
+                }
+
+                // 创建详情行
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'post-details-row';
+                detailsRow.innerHTML = `
+                        <td colspan="5">
+                            <div class="expanded-content">
+                                <h3>帖子详细信息</h3>
+                                <p><strong>标题:</strong> ${post.title}</p>
+                                <p><strong>作者:</strong> ${post.username}${post.nickname ? ` (${post.nickname})` : ''}</p>
+                                <p><strong>发布时间:</strong> ${new Date(post.created_at).toLocaleString()}</p>
+
+                                <h4 style="margin-top: 15px;">内容</h4>
+                                <div class="post-content">${post.content}</div>
+                            </div>
+                        </td>
+                    `;
+
+                // 插入详情行
+                row.after(detailsRow);
+            } else {
+                throw new Error(post.message || '获取帖子详情失败');
+            }
+        } catch (err) {
+            alert(`获取帖子详情失败: ${err.message}`);
+        }
+    }
+
+    // 显示对话详情
+    async function showConversationDetails(conversationId) {
+        try {
+            const response = await fetch(`http://192.168.43.143:3000/api/admin/conversations/${conversationId}`);
+            const conversation = await response.json();
+
+            if (response.ok) {
+                // 找到对应的行
+                const row = document.querySelector(`button[data-conversation-id="${conversationId}"]`).closest('tr');
+
+                // 检查是否已经展开
+                const existingDetails = row.nextElementSibling;
+                if (existingDetails && existingDetails.classList.contains('conversation-details-row')) {
+                    existingDetails.remove();
+                    return;
+                }
+
+                // 创建详情行
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'conversation-details-row';
+                detailsRow.innerHTML = `
+                        <td colspan="5">
+                            <div class="expanded-content">
+                                <h3>对话详细信息</h3>
+                                <p><strong>标题:</strong> ${conversation.title}</p>
+                                <p><strong>用户:</strong> ${conversation.username}${conversation.nickname ? ` (${conversation.nickname})` : ''}</p>
+                                <p><strong>创建时间:</strong> ${new Date(conversation.created_at).toLocaleString()}</p>
+
+                                <h4 style="margin-top: 15px;">对话内容</h4>
+                                <div class="conversation-content">${conversation.content}</div>
+                            </div>
+                        </td>
+                    `;
+
+                // 插入详情行
+                row.after(detailsRow);
+            } else {
+                throw new Error(conversation.message || '获取对话详情失败');
+            }
+        } catch (err) {
+            alert(`获取对话详情失败: ${err.message}`);
+        }
+    }
+
+    // 执行搜索
+    function performSearch() {
+        const searchTerm = searchInput.value.trim();
+
+        if (currentTab === 'users') {
+            loadUsers(1, searchTerm);
+        } else if (currentTab === 'posts') {
+            loadPosts(1, searchTerm);
+        } else if (currentTab === 'conversations') {
+            loadConversations(1, searchTerm);
+        }
+    }
+
+    // 更新数据
+    function updateData() {
+        if (currentTab === 'users') {
+            loadUsers(currentUsersPage, searchInput.value.trim());
+        } else if (currentTab === 'posts') {
+            loadPosts(currentPostsPage, searchInput.value.trim());
+        } else if (currentTab === 'conversations') {
+            loadConversations(currentConversationsPage, searchInput.value.trim());
+        }
+    }
+</script>
+</body>
+</html>
